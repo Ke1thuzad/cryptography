@@ -19,12 +19,10 @@ namespace Cryptography
 
             byte[] permutedData = Utility.PermuteBits(data, pBlock, true, true);
         
-            Console.Write("Hex: ");
             foreach (byte b in permutedData)
             {
                 Console.Write($"{b:X2} ");
             }
-            Console.WriteLine();
         }
     }
 }

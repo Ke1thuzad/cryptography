@@ -4,8 +4,7 @@ namespace Cryptography;
 
 public static class Utility
 {
-    public static byte[] PermuteBits(byte[] bytes, byte[] P, bool MSB = true, bool indexFromOne = true)
-    {
+    public static byte[] PermuteBits(byte[] bytes, byte[] P, bool MSB = true, bool indexFromOne = true) {
         ArgumentNullException.ThrowIfNull(bytes);
         ArgumentNullException.ThrowIfNull(P);
 
@@ -13,36 +12,41 @@ public static class Utility
         int resultBits = P.Length;
         byte[] result = new byte[(resultBits + 7) / 8];
 
-        for (int i = 0; i < resultBits; i++)
-        {
-            int sourcePos = P[i];
-            
-            if (indexFromOne) 
-                sourcePos--;
+        for (int i = 0; i < resultBits; i++) {
+            int permutationPos = P[i];
 
-            if (sourcePos < 0 || sourcePos >= totalBits)
+            if (indexFromOne)
+                permutationPos--;
+
+            if (permutationPos < 0 || permutationPos >= totalBits)
                 throw new ArgumentOutOfRangeException();
 
-            int sourceByteIndex = sourcePos / 8;
-            int sourceBitIndex = sourcePos % 8;
-            
-            if (MSB) 
-                sourceBitIndex = 7 - sourceBitIndex;
-            
-            bool bit = (bytes[sourceByteIndex] & (1 << sourceBitIndex)) != 0;
-
-            int resultByteIndex = i / 8;
-            int resultBitIndex = i % 8;
-            
-            if (MSB) 
-                resultBitIndex = 7 - resultBitIndex;
-
-            if (bit)
-                result[resultByteIndex] |= (byte)(1 << resultBitIndex);
-            else
-                result[resultByteIndex] &= (byte)~(1 << resultBitIndex);
+            SetBit(result, i, GetBit(bytes, permutationPos, MSB), MSB);
         }
 
         return result;
+    }
+
+    public static bool GetBit(byte[] bytes, int index, bool MSB = true) {
+        int bytePos = index / 8;
+        int bitPos = index % 8;
+
+        if (MSB)
+            bitPos = 7 - bitPos;
+
+        return (bytes[bytePos] & (1 << bitPos)) != 0;
+    }
+
+    public static void SetBit(byte[] bytes, int index, bool bit, bool MSB = true) {
+        int bytePos = index / 8;
+        int bitPos = index % 8;
+
+        if (MSB)
+            bitPos = 7 - bitPos;
+
+        if (bit)
+            bytes[bytePos] |= (byte)(1 << bitPos);
+        else
+            bytes[bytePos] &= (byte)~(1 << bitPos);
     }
 }
