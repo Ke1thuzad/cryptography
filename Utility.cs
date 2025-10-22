@@ -49,4 +49,68 @@ public static class Utility
         else
             bytes[bytePos] &= (byte)~(1 << bitPos);
     }
+
+    public static byte[] XORBytes(byte[] a, byte[] b, bool MSB = true)
+    {
+        int maxLength = Math.Max(a.Length, b.Length);
+        byte[] result = new byte[maxLength];
+    
+        for (int i = 0; i < maxLength; i++)
+        {
+            byte byteA = 0;
+            byte byteB = 0;
+        
+            if (MSB)
+            {
+                int indexA = a.Length - maxLength + i;
+                int indexB = b.Length - maxLength + i;
+                byteA = indexA >= 0 ? a[indexA] : (byte)0;
+                byteB = indexB >= 0 ? b[indexB] : (byte)0;
+            }
+            else
+            {
+                byteA = i < a.Length ? a[i] : (byte)0;
+                byteB = i < b.Length ? b[i] : (byte)0;
+            }
+        
+            result[i] = (byte)(byteA ^ byteB);
+        }
+    
+        return result;
+    }
+    
+    public static void IncrementCounter(byte[] counter) {
+        for (int i = counter.Length - 1; i >= 0; i--)
+        {
+            if (++counter[i] != 0)
+                break;
+        }
+    }
+    
+    public static byte[] AddBytes(byte[] a, byte[] b)
+    {
+        int maxLength = Math.Max(a.Length, b.Length);
+        byte[] result = new byte[maxLength];
+        int carry = 0;
+
+        for (int i = 0; i < maxLength; i++)
+        {
+            int sum = carry;
+        
+            int indexA = a.Length - 1 - i;
+            int indexB = b.Length - 1 - i;
+
+            if (indexA >= 0)
+                sum += a[indexA];
+            if (indexB >= 0)
+                sum += b[indexB];
+
+            carry = sum / 256;
+            result[result.Length - 1 - i] = (byte)(sum % 256);
+        }
+
+        return result;
+    }
+
+    public static int BytesLength(byte[][] bytes) => bytes.Length * bytes[0].Length;
 }
