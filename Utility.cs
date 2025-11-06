@@ -4,6 +4,7 @@ namespace Cryptography;
 
 public static class Utility
 {
+    
     public static byte[] PermuteBits(byte[] bytes, byte[] P, bool MSB = true, bool indexFromOne = true) {
         ArgumentNullException.ThrowIfNull(bytes);
         ArgumentNullException.ThrowIfNull(P);
@@ -11,6 +12,9 @@ public static class Utility
         int totalBits = bytes.Length * 8;
         int resultBits = P.Length;
         byte[] result = new byte[(resultBits + 7) / 8];
+
+        Span<byte> bytesSpan = bytes;
+        Span<byte> resultSpan = result;
 
         for (int i = 0; i < resultBits; i++) {
             int permutationPos = P[i];
@@ -21,15 +25,16 @@ public static class Utility
             if (permutationPos < 0 || permutationPos >= totalBits)
                 throw new ArgumentOutOfRangeException();
 
-            SetBit(result, i, GetBit(bytes, permutationPos, MSB), MSB);
+            SetBit(resultSpan, i, GetBit(bytesSpan, permutationPos, MSB), MSB);
         }
 
         return result;
     }
-
-    public static bool GetBit(byte[] bytes, int index, bool MSB = true) {
-        int bytePos = index / 8;
-        int bitPos = index % 8;
+    
+    public static bool GetBit(Span<byte> bytes, int index, bool MSB = true)
+    {
+        int bytePos = index >> 3;
+        int bitPos = index & 0x07;
 
         if (MSB)
             bitPos = 7 - bitPos;
@@ -37,9 +42,10 @@ public static class Utility
         return (bytes[bytePos] & (1 << bitPos)) != 0;
     }
 
-    public static void SetBit(byte[] bytes, int index, bool bit, bool MSB = true) {
-        int bytePos = index / 8;
-        int bitPos = index % 8;
+    public static void SetBit(Span<byte> bytes, int index, bool bit, bool MSB = true)
+    {
+        int bytePos = index >> 3;
+        int bitPos = index & 0x07;
 
         if (MSB)
             bitPos = 7 - bitPos;
@@ -50,32 +56,14 @@ public static class Utility
             bytes[bytePos] &= (byte)~(1 << bitPos);
     }
 
-    public static byte[] XORBytes(byte[] a, byte[] b, bool MSB = true)
-    {
-        int maxLength = Math.Max(a.Length, b.Length);
-        byte[] result = new byte[maxLength];
-    
-        for (int i = 0; i < maxLength; i++)
-        {
-            byte byteA = 0;
-            byte byteB = 0;
+    public static byte[] XORBytes(byte[] a, byte[] b) {
+        int minLength = Math.Min(a.Length, b.Length);
+        byte[] result = new byte[minLength];
         
-            if (MSB)
-            {
-                int indexA = a.Length - maxLength + i;
-                int indexB = b.Length - maxLength + i;
-                byteA = indexA >= 0 ? a[indexA] : (byte)0;
-                byteB = indexB >= 0 ? b[indexB] : (byte)0;
-            }
-            else
-            {
-                byteA = i < a.Length ? a[i] : (byte)0;
-                byteB = i < b.Length ? b[i] : (byte)0;
-            }
-        
-            result[i] = (byte)(byteA ^ byteB);
+        for (int i = 0; i < minLength; i++) {
+            result[i] = (byte)(a[i] ^ b[i]);
         }
-    
+        
         return result;
     }
     
@@ -87,30 +75,36 @@ public static class Utility
         }
     }
     
-    public static byte[] AddBytes(byte[] a, byte[] b)
+    public static byte[] IncrementByDelta(byte[] counter, byte[] delta)
     {
-        int maxLength = Math.Max(a.Length, b.Length);
-        byte[] result = new byte[maxLength];
+        byte[] result = (byte[])counter.Clone();
         int carry = 0;
-
-        for (int i = 0; i < maxLength; i++)
+    
+        for (int i = delta.Length - 1; i >= 0; i--)
         {
-            int sum = carry;
-        
-            int indexA = a.Length - 1 - i;
-            int indexB = b.Length - 1 - i;
-
-            if (indexA >= 0)
-                sum += a[indexA];
-            if (indexB >= 0)
-                sum += b[indexB];
-
-            carry = sum / 256;
-            result[result.Length - 1 - i] = (byte)(sum % 256);
+            int sum = result[counter.Length - delta.Length + i] + delta[i] + carry;
+            result[counter.Length - delta.Length + i] = (byte)(sum & 0xFF);
+            carry = sum >> 8;
         }
-
+    
+        for (int i = counter.Length - delta.Length - 1; i >= 0 && carry > 0; i--)
+        {
+            int sum = result[i] + carry;
+            result[i] = (byte)(sum & 0xFF);
+            carry = sum >> 8;
+        }
+    
         return result;
     }
 
     public static int BytesLength(byte[][] bytes) => bytes.Length * bytes[0].Length;
+
+    public static uint BytesToUnsignedInt(byte[] bytes) =>
+        (uint)((bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3]);
+
+    public static uint LeftShift28(uint x, int shift)
+    {
+        x &= 0x0FFFFFFF;
+        return ((x << shift) | (x >> (28 - shift))) & 0x0FFFFFFF;
+    }
 }

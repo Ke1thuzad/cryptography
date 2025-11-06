@@ -1,34 +1,29 @@
-﻿namespace Cryptography;
+﻿using Cryptography.DES.Context;
+
+namespace Cryptography;
+
+using Cryptography.DES.Encryption;
 
 internal class Program
 {
     static void Main(string[] args) {
-        PermutationTest();
-    }
+        Des des = new();
 
-    static void PermutationTest() {
-        byte[] data = [0b10101010];
-        byte[] pBlock = [8, 7, 6, 5, 4, 3, 2, 1];
+        // byte[] key = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0];
+        byte[] key = [119, 99, 111, 30, 241, 164, 43, 34];
 
-        byte[] permutedData = Utility.PermuteBits(data, pBlock);
+        // byte[] iv = (byte[])key.Clone();
+        byte[] iv = [165, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF];
         
-        foreach (byte b in permutedData)
-        {
-            Console.Write(Convert.ToString(b, 2).PadLeft(8, '0'));
-        }
-        
-        Console.WriteLine();
-        Console.WriteLine();
-        
-        
-        data = [0b11111111, 0b00000000];
-        pBlock = [16, 1, 15, 2, 14, 3, 13, 4, 12, 5, 11, 6, 10, 7, 9, 8];
+        SymmetricAlgorithmContext context = new(des, key, CipherMode.Mode.ECB, Padding.Mode.PKCS7, iv);
 
-        permutedData = Utility.PermuteBits(data, pBlock);
+        // context.Encrypt("test", "encryptedTest").Wait();
+        //
+        // context.Decrypt("encryptedTest", "decryptedTes").Wait();
+
+        context.Encrypt("qewrew.mp4", "encryptedqewrew").Wait();
         
-        foreach (byte b in permutedData)
-        {
-            Console.Write(Convert.ToString(b, 2).PadLeft(8, '0') + ' ');
-        }
+        context.Decrypt("encryptedqewrew", "decryptedqewrew.mp4").Wait();
+        // context.Decrypt("image_encrypted.bin", "decrypted_image.jpg").Wait();
     }
 }
