@@ -1,4 +1,4 @@
-﻿namespace Cryptography.DES.Context;
+﻿namespace Cryptography.Context.Symmetric;
 
 public class Padding(Padding.Mode mode, int algorithmBlockSize)
 {

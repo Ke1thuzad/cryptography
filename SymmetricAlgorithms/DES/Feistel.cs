@@ -1,4 +1,6 @@
-﻿namespace Cryptography.DES.Encryption;
+﻿using Cryptography.Utility;
+
+namespace Cryptography.SymmetricAlgorithms.DES;
 
 public class Feistel : ICipherTransform
 {
@@ -6,13 +8,13 @@ public class Feistel : ICipherTransform
         if (block.Length != 4 || roundKey.Length != 6)
             throw new ArgumentException("Invalid block or key size");
 
-        byte[] expanded = Utility.PermuteBits(block, DesTables.E);
+        byte[] expanded = BitOperations.PermuteBits(block, DesTables.E);
         
-        expanded = Utility.XORBytes(expanded, roundKey);
+        expanded = BitOperations.XORBytes(expanded, roundKey);
         
         byte[] sboxResult = ApplySBoxes(expanded);
         
-        byte[] result = Utility.PermuteBits(sboxResult, DesTables.P);
+        byte[] result = BitOperations.PermuteBits(sboxResult, DesTables.P);
         
         return result;
     }
@@ -21,7 +23,6 @@ public class Feistel : ICipherTransform
     {
         byte[] output = new byte[4];
         
-        // Предварительно вычисленные маски и сдвиги для быстрого доступа
         var sboxConfig = new (int bytePos, int shift, bool crossByte)[8];
         for (int i = 0; i < 8; i++)
         {
@@ -48,9 +49,8 @@ public class Feistel : ICipherTransform
             int col = (bits >> 1) & 0x0F;
             byte sboxValue = DesTables.SBoxes[i, row, col];
 
-            // Оптимизированная запись в выходной массив
-            int outputIndex = i >> 1;               // i / 2
-            int outputShift = (i & 1) == 0 ? 4 : 0; // 4 для четных, 0 для нечетных
+            int outputIndex = i >> 1;               
+            int outputShift = (i & 1) == 0 ? 4 : 0; 
             
             output[outputIndex] |= (byte)(sboxValue << outputShift);
         }

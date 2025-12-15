@@ -1,4 +1,6 @@
-﻿namespace Cryptography.DES.Encryption;
+﻿using Cryptography.Utility;
+
+namespace Cryptography.SymmetricAlgorithms.DES;
 
 public class FeistelNetwork
 {
@@ -28,28 +30,34 @@ public class FeistelNetwork
         }
     }
 
-    public byte[] ProcessRounds(byte[] block, bool encrypt = true) 
-    {
+    public byte[] ProcessRounds(byte[] block, bool encrypt = true) {
         if (roundKeys == null)
             throw new InvalidOperationException("Key not set. Set Key property first.");
-            
-        if (block.Length != 8)
-            throw new ArgumentException("Feistel Networks accepts only 8-byte blocks");
 
         int size = block.Length;
 
         byte[] left = block[..(size / 2)];
         byte[] right = block[(size / 2)..];
 
-        for (int round = 0; round < 16; round++) 
+        for (int round = 0; round < roundKeys.Length; round++) 
         {
-            byte[] temp = (byte[])right.Clone();
+            if (encrypt) {
+                byte[] temp = (byte[])right.Clone();
 
-            right = Utility.XORBytes(left, cipher.TransformBlock(right, roundKeys[encrypt ? round : 15 - round]));
+                right = BitOperations.XORBytes(left, cipher.TransformBlock(right, roundKeys[round]));
 
-            left = temp;
+                left = temp;
+            }
+            else {
+                byte[] temp = (byte[])left.Clone();
+
+                left = BitOperations.XORBytes(right, cipher.TransformBlock(left, roundKeys[roundKeys.Length - 1 - round]));
+
+                right = temp;
+                
+            }
         }
-
-        return right.Concat(left).ToArray();
+        
+        return left.Concat(right).ToArray();
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace Cryptography.DES.Context;
+﻿using Cryptography.Utility;
+
+namespace Cryptography.Context.Symmetric;
 
 public class CipherMode
 {
@@ -23,12 +25,12 @@ public class CipherMode
         byte[]? initializationVector) {
         CurrentMode = mode;
         this.symmetricKeyAlgorithm = symmetricKeyAlgorithm;
-        
-        if (initializationVector != null && mode != Mode.RandomDelta) {
+    
+        if (initializationVector != null) {
             this.initializationVector = initializationVector;
             return;
         }
-        
+    
         if (CurrentMode != Mode.ECB && CurrentMode != Mode.RandomDelta) {
             throw new ArgumentOutOfRangeException(nameof(initializationVector), "This mode should use Initialization Vector (IV)");
         }
@@ -37,7 +39,6 @@ public class CipherMode
             Random rd = new();
 
             this.initializationVector = new byte[symmetricKeyAlgorithm.BlockSize];
-
             rd.NextBytes(this.initializationVector);
         }
     }
@@ -50,7 +51,7 @@ public class CipherMode
         else
             crypted = await symmetricKeyAlgorithm.Decrypt(counter);
 
-        return Utility.XORBytes(crypted, block);
+        return BitOperations.XORBytes(crypted, block);
     }
     
     public async Task<byte[]> Encrypt(byte[] data) => await (CurrentMode switch {
@@ -102,7 +103,7 @@ public class CipherMode
             byte[] block = new byte[blockSize];
             Buffer.BlockCopy(data, i * blockSize, block, 0, blockSize);
             
-            xored = Utility.XORBytes(xored, block);
+            xored = BitOperations.XORBytes(xored, block);
             xored = await symmetricKeyAlgorithm.Encrypt(xored);
             
             Buffer.BlockCopy(xored, 0, result, i * blockSize, blockSize);
@@ -122,7 +123,7 @@ public class CipherMode
             byte[] block = new byte[blockSize];
             Buffer.BlockCopy(data, i * blockSize, block, 0, blockSize);
 
-            byte[] xored = Utility.XORBytes(block, Utility.XORBytes(prevCipher, prevPlain));
+            byte[] xored = BitOperations.XORBytes(block, BitOperations.XORBytes(prevCipher, prevPlain));
             byte[] encrypted = await symmetricKeyAlgorithm.Encrypt(xored);
             
             Buffer.BlockCopy(encrypted, 0, result, i * blockSize, blockSize);
@@ -145,7 +146,7 @@ public class CipherMode
             Buffer.BlockCopy(data, i * blockSize, block, 0, blockSize);
 
             byte[] encryptedFeedback = await symmetricKeyAlgorithm.Encrypt(feedback);
-            byte[] encryptedBlock = Utility.XORBytes(encryptedFeedback, block);
+            byte[] encryptedBlock = BitOperations.XORBytes(encryptedFeedback, block);
             
             Buffer.BlockCopy(encryptedBlock, 0, result, i * blockSize, blockSize);
             feedback = encryptedBlock;
@@ -165,7 +166,7 @@ public class CipherMode
             Buffer.BlockCopy(data, i * blockSize, block, 0, blockSize);
 
             xored = await symmetricKeyAlgorithm.Encrypt(xored);
-            byte[] resultBlock = Utility.XORBytes(xored, block);
+            byte[] resultBlock = BitOperations.XORBytes(xored, block);
             
             Buffer.BlockCopy(resultBlock, 0, result, i * blockSize, blockSize);
         }
@@ -179,7 +180,6 @@ public class CipherMode
         byte[] result = new byte[data.Length];
         byte[] counter = (byte[])initializationVector.Clone();
 
-        // Process blocks in parallel for CTR mode
         var tasks = new Task<byte[]>[blockCount];
         
         for (int i = 0; i < blockCount; i++) {
@@ -188,12 +188,11 @@ public class CipherMode
             byte[] currentCounter = (byte[])counter.Clone();
             
             tasks[i] = ParallelCryptXORBlocks(block, currentCounter);
-            Utility.IncrementCounter(counter);
+            BitOperations.IncrementCounter(counter);
         }
 
         byte[][] encryptedBlocks = await Task.WhenAll(tasks);
         
-        // Combine results
         for (int i = 0; i < blockCount; i++) {
             Buffer.BlockCopy(encryptedBlocks[i], 0, result, i * blockSize, blockSize);
         }
@@ -201,32 +200,31 @@ public class CipherMode
         return result;
     }
 
-    async Task<byte[]> EncryptRD(byte[] data)
-    {
+    async Task<byte[]> EncryptRD(byte[] data) {
         int blockSize = symmetricKeyAlgorithm.BlockSize;
         int blockCount = data.Length / blockSize;
-        byte[] result = new byte[data.Length + blockSize];
-    
-        Buffer.BlockCopy(initializationVector, 0, result, 0, blockSize);
-    
-        byte[] counter = (byte[])initializationVector.Clone();
-    
-        byte[] delta = new byte[4];
-        Buffer.BlockCopy(counter, blockSize - 4, delta, 0, 4);
-    
+        byte[] result = new byte[data.Length];
+
+        int deltaSize = blockSize / 2;
+        byte[] deltaBytes = new byte[deltaSize];
+        Buffer.BlockCopy(initializationVector, blockSize - deltaSize, deltaBytes, 0, deltaSize);
+
+        byte[] counter = new byte[blockSize];
+        Array.Copy(initializationVector, 0, counter, 0, blockSize);
+
         for (int i = 0; i < blockCount; i++)
         {
             byte[] block = new byte[blockSize];
             Buffer.BlockCopy(data, i * blockSize, block, 0, blockSize);
-        
-            byte[] xored = Utility.XORBytes(block, counter);
+
+            byte[] xored = BitOperations.XORBytes(block, counter);
             byte[] encrypted = await symmetricKeyAlgorithm.Encrypt(xored);
-        
-            Buffer.BlockCopy(encrypted, 0, result, (i + 1) * blockSize, blockSize);
-        
-            counter = Utility.IncrementByDelta(counter, delta);
+
+            Buffer.BlockCopy(encrypted, 0, result, i * blockSize, blockSize);
+
+            counter = BitOperations.IncrementCounterByDelta(counter, deltaBytes);
         }
-    
+
         return result;
     }
 
@@ -261,7 +259,7 @@ public class CipherMode
             Buffer.BlockCopy(data, i * blockSize, block, 0, blockSize);
 
             byte[] decrypted = await symmetricKeyAlgorithm.Decrypt(block);
-            byte[] plain = Utility.XORBytes(decrypted, xored);
+            byte[] plain = BitOperations.XORBytes(decrypted, xored);
             
             Buffer.BlockCopy(plain, 0, result, i * blockSize, blockSize);
             xored = block;
@@ -282,7 +280,7 @@ public class CipherMode
             Buffer.BlockCopy(data, i * blockSize, block, 0, blockSize);
 
             byte[] decrypted = await symmetricKeyAlgorithm.Decrypt(block);
-            byte[] plain = Utility.XORBytes(decrypted, Utility.XORBytes(prevCipher, prevPlain));
+            byte[] plain = BitOperations.XORBytes(decrypted, BitOperations.XORBytes(prevCipher, prevPlain));
             
             Buffer.BlockCopy(plain, 0, result, i * blockSize, blockSize);
 
@@ -304,7 +302,7 @@ public class CipherMode
             Buffer.BlockCopy(data, i * blockSize, block, 0, blockSize);
 
             byte[] encryptedFeedback = await symmetricKeyAlgorithm.Encrypt(feedback);
-            byte[] decryptedBlock = Utility.XORBytes(encryptedFeedback, block);
+            byte[] decryptedBlock = BitOperations.XORBytes(encryptedFeedback, block);
             
             Buffer.BlockCopy(decryptedBlock, 0, result, i * blockSize, blockSize);
             feedback = block;
@@ -320,29 +318,29 @@ public class CipherMode
     async Task<byte[]> DecryptRD(byte[] data)
     {
         int blockSize = symmetricKeyAlgorithm.BlockSize;
-    
-        int blockCount = (data.Length - blockSize) / blockSize;
-        byte[] result = new byte[blockCount * blockSize];
-    
+        int blockCount = data.Length / blockSize;
+        byte[] result = new byte[data.Length];
+
+        int deltaSize = blockSize / 2;
+        byte[] deltaBytes = new byte[deltaSize];
+        Buffer.BlockCopy(initializationVector, blockSize - deltaSize, deltaBytes, 0, deltaSize);
+
         byte[] counter = new byte[blockSize];
-        Buffer.BlockCopy(data, 0, counter, 0, blockSize);
-    
-        byte[] delta = new byte[4];
-        Buffer.BlockCopy(counter, blockSize - 4, delta, 0, 4);
-    
+        Array.Copy(initializationVector, 0, counter, 0, blockSize);
+
         for (int i = 0; i < blockCount; i++)
         {
             byte[] block = new byte[blockSize];
-            Buffer.BlockCopy(data, (i + 1) * blockSize, block, 0, blockSize);
-        
+            Buffer.BlockCopy(data, i * blockSize, block, 0, blockSize);
+
             byte[] decrypted = await symmetricKeyAlgorithm.Decrypt(block);
-            byte[] plain = Utility.XORBytes(decrypted, counter);
-        
+            byte[] plain = BitOperations.XORBytes(decrypted, counter);
+
             Buffer.BlockCopy(plain, 0, result, i * blockSize, blockSize);
-        
-            counter = Utility.IncrementByDelta(counter, delta);
+
+            counter = BitOperations.IncrementCounterByDelta(counter, deltaBytes);
         }
-    
+
         return result;
     }
 

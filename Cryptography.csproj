@@ -8,4 +8,8 @@
 <!--        <Optimize>true</Optimize>-->
     </PropertyGroup>
 
+    <ItemGroup>
+      <Folder Include="SymmetricAlgorithms\" />
+    </ItemGroup>
+
 </Project>

@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Cryptography.DES.Context;
+namespace Cryptography.Context.Symmetric;
 
 public class SymmetricAlgorithmContext
 {
@@ -28,11 +28,12 @@ public class SymmetricAlgorithmContext
         }
 
         byte[] decrypted = await cipherMode.Decrypt(data);
+        // return decrypted;
         return padding.Remove(decrypted);
     }
 
     public async Task Encrypt(string inputFilepath, string outputFilepath) {
-        const int bufferSize = 1 << 23;
+        const int bufferSize = 1 << 13;
         byte[] buffer = new byte[bufferSize];
 
         await using FileStream input = new(inputFilepath, FileMode.Open, FileAccess.Read);
@@ -44,7 +45,7 @@ public class SymmetricAlgorithmContext
             Buffer.BlockCopy(buffer, 0, dataChunk, 0, bytesRead);
 
             byte[] encrypted;
-            if (cipherMode.CurrentMode != CipherMode.Mode.RandomDelta)
+            if (cipherMode.CurrentMode is CipherMode.Mode.ECB)
                 encrypted = await EncryptParallel(dataChunk);
             else
                 encrypted = await Encrypt(dataChunk);
@@ -54,14 +55,22 @@ public class SymmetricAlgorithmContext
     }
 
     public async Task Decrypt(string inputFilepath, string outputFilepath) {
-        const int bufferSize = 1 << 23;
+        const int bufferSize = 1 << 13;
         byte[] buffer = new byte[bufferSize];
 
         await using FileStream input = new(inputFilepath, FileMode.Open, FileAccess.Read);
         await using FileStream output = new(outputFilepath, FileMode.Create, FileAccess.Write);
 
+        long lastBlock = input.Length / bufferSize;
+        if (input.Length % bufferSize > 0)
+            lastBlock++;
+
+        long i = 0;
+
         int bytesRead;
         while ((bytesRead = await input.ReadAsync(buffer.AsMemory(0, bufferSize))) > 0) {
+            i++;
+            
             if (bytesRead % algorithmBlockSize != 0) {
                 throw new InvalidDataException("Encrypted data size must be multiple of block size");
             }
@@ -70,12 +79,16 @@ public class SymmetricAlgorithmContext
             Buffer.BlockCopy(buffer, 0, dataChunk, 0, bytesRead);
             
             byte[] decrypted;
-            if (cipherMode.CurrentMode != CipherMode.Mode.RandomDelta)
+            if (cipherMode.CurrentMode is CipherMode.Mode.ECB)
                 decrypted = await DecryptParallel(dataChunk);
             else
                 decrypted = await Decrypt(dataChunk);
             
-            await output.WriteAsync(padding.Remove(decrypted));
+            if (i >= lastBlock) {
+                decrypted = padding.Remove(decrypted);
+            }
+            
+            await output.WriteAsync(decrypted);
         }
     }
 

@@ -1,4 +1,4 @@
-﻿namespace Cryptography.DES;
+﻿namespace Cryptography;
 
 public interface ICipherTransform
 {

@@ -1,8 +1,6 @@
-﻿using System;
+﻿namespace Cryptography.Utility;
 
-namespace Cryptography;
-
-public static class Utility
+public static class BitOperations
 {
     
     public static byte[] PermuteBits(byte[] bytes, byte[] P, bool MSB = true, bool indexFromOne = true) {
@@ -79,21 +77,22 @@ public static class Utility
     {
         byte[] result = (byte[])counter.Clone();
         int carry = 0;
-    
+
         for (int i = delta.Length - 1; i >= 0; i--)
         {
-            int sum = result[counter.Length - delta.Length + i] + delta[i] + carry;
-            result[counter.Length - delta.Length + i] = (byte)(sum & 0xFF);
+            int counterIndex = counter.Length - delta.Length + i;
+            int sum = result[counterIndex] + delta[i] + carry;
+            result[counterIndex] = (byte)(sum & 0xFF);
             carry = sum >> 8;
         }
-    
+
         for (int i = counter.Length - delta.Length - 1; i >= 0 && carry > 0; i--)
         {
             int sum = result[i] + carry;
             result[i] = (byte)(sum & 0xFF);
             carry = sum >> 8;
         }
-    
+
         return result;
     }
 
@@ -106,5 +105,66 @@ public static class Utility
     {
         x &= 0x0FFFFFFF;
         return ((x << shift) | (x >> (28 - shift))) & 0x0FFFFFFF;
+    }
+    
+    public static byte[] ExtendKeyWithParity(byte[] key) {
+        if (key.Length == 8)
+            return key;
+        
+        if (key.Length != 7) {
+            throw new ArgumentException("Key must be exactly 7 bytes long");
+        }
+    
+        byte[] extendedKey = new byte[8];
+    
+        for (int i = 0; i < 7; i++) {
+            extendedKey[i] = (byte) ((key[i] & 0xFE) | ((key[i] & 0x01) << 1));
+        }
+    
+        extendedKey[7] = (byte) ((key[6] & 0x80) >> 7);
+    
+        for (int i = 0; i < 8; i++) {
+            extendedKey[i] = AddParityBit(extendedKey[i]);
+        }
+    
+        return extendedKey;
+    }
+
+    static byte AddParityBit(byte b) {
+        int count = 0;
+        for (int i = 7; i >= 1; i--) {
+            if (((b >> i) & 0x01) == 1) {
+                count++;
+            }
+        }
+        
+        if (count % 2 == 0) {
+            return (byte) (b | 0x01);
+        }
+
+        return (byte) (b & 0xFE);
+    }
+    
+    public static byte[] IncrementCounterByDelta(byte[] counter, byte[] delta)
+    {
+        byte[] result = (byte[])counter.Clone();
+        int carry = 0;
+
+        for (int i = delta.Length - 1; i >= 0; i--)
+        {
+            int counterIndex = counter.Length - delta.Length + i;
+            int sum = result[counterIndex] + delta[i] + carry;
+            result[counterIndex] = (byte)(sum & 0xFF);
+            carry = sum >> 8;
+        }
+
+        for (int i = counter.Length - delta.Length - 1; i >= 0 && carry > 0; i--)
+        {
+            int sum = result[i] + carry;
+            result[i] = (byte)(sum & 0xFF);
+            carry = sum >> 8;
+        }
+
+        return result;
     }
 }

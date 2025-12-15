@@ -1,4 +1,4 @@
-﻿namespace Cryptography.DES.Encryption;
+﻿namespace Cryptography.SymmetricAlgorithms.DES;
 
 public static class DesTables
 {

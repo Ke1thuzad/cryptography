@@ -1,4 +1,6 @@
-namespace Cryptography.DES.Encryption;
+using Cryptography.Utility;
+
+namespace Cryptography.SymmetricAlgorithms.DES;
 
 public class Des : ISymmetricKeyAlgorithm
 {
@@ -22,10 +24,10 @@ public class Des : ISymmetricKeyAlgorithm
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        // if (key.Length != 8)
-        //     throw new ArgumentException("DES key must be 8 bytes (64 bits)");
-            
-        feistelNetwork.Key = key;
+        if (key.Length != 8 && key.Length != 7)
+            throw new ArgumentException("DES key must be 7/8 bytes (56/64 bits)");
+        
+        feistelNetwork.Key = BitOperations.ExtendKeyWithParity(key);
     }
 
     public Task<byte[]> Encrypt(byte[] block)
@@ -38,11 +40,11 @@ public class Des : ISymmetricKeyAlgorithm
         if (block.Length != BlockSize)
             throw new ArgumentException($"Block size must be {BlockSize} bytes");
 
-        byte[] permutedBlock = Utility.PermuteBits(block, DesTables.IP);
+        byte[] permutedBlock = BitOperations.PermuteBits(block, DesTables.IP);
         
         byte[] processedBlock = feistelNetwork.ProcessRounds(permutedBlock, encrypt: true);
         
-        byte[] result = Utility.PermuteBits(processedBlock, DesTables.IPInv);
+        byte[] result = BitOperations.PermuteBits(processedBlock, DesTables.IPInv);
         
         return Task.FromResult(result);
     }
@@ -57,11 +59,11 @@ public class Des : ISymmetricKeyAlgorithm
         if (block.Length != BlockSize)
             throw new ArgumentException($"Block size must be {BlockSize} bytes");
 
-        byte[] permutedBlock = Utility.PermuteBits(block, DesTables.IP);
+        byte[] permutedBlock = BitOperations.PermuteBits(block, DesTables.IP);
         
         byte[] processedBlock = feistelNetwork.ProcessRounds(permutedBlock, encrypt: false);
         
-        byte[] result = Utility.PermuteBits(processedBlock, DesTables.IPInv);
+        byte[] result = BitOperations.PermuteBits(processedBlock, DesTables.IPInv);
         
         return Task.FromResult(result);
     }
