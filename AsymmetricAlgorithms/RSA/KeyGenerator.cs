@@ -1,10 +1,11 @@
 using System.Numerics;
 using Cryptography.AsymmetricAlgorithms.RSA.PrimeTests;
+using Cryptography.Context.Asymmetric;
 using Cryptography.Utility;
 
 namespace Cryptography.AsymmetricAlgorithms.RSA;
 
-public class KeyGenerator
+public class KeyGenerator : IAsymmetricKeyGenerator
 {
     readonly Rsa.PrimalityTestType testType;
     readonly double minProbability;
@@ -32,7 +33,7 @@ public class KeyGenerator
         rng = new BigRandomNumberGenerator();
     }
 
-    public (BigInteger e, BigInteger d, BigInteger n, BigInteger p, BigInteger q, BigInteger dP, BigInteger dQ, BigInteger qInv) GenerateKeyPair()
+    public AsymmetricKeyPair GenerateKeyPair()
     {
         int primeBitLength = bitLength / 2;
 
@@ -125,7 +126,7 @@ public class KeyGenerator
         BigInteger dQ = d % (q - 1);
         BigInteger qInv = CalculateModularInverse(q, p);
 
-        return (e, d, n, p, q, dP, dQ, qInv);
+        return new RsaFullKeyPair(e, d, n, p, q, dP, dQ, qInv);
     }
 
     BigInteger GeneratePrime(int bits)

@@ -4,7 +4,7 @@ using Cryptography.Context.Asymmetric;
 
 namespace Cryptography.AsymmetricAlgorithms.RSA;
 
-public class Rsa
+public class Rsa : IAsymmetricCipher
 {
     public enum PrimalityTestType
     {
@@ -26,7 +26,10 @@ public class Rsa
     readonly KeyGenerator keyGenerator;
     readonly PkcsPadding padding;
 
+    public int KeySizeBits => n.GetBitLength() == 0 ? 0 : (int)n.GetBitLength();
+    
     public RsaKeyPair PublicPair => new(e, n);
+    
     public RsaKeyPair PrivatePair => new(d, n); 
 
     public bool HasKey => n != 0;
@@ -39,16 +42,19 @@ public class Rsa
 
     public void GenerateKeys()
     {
-        (BigInteger e, BigInteger d, BigInteger n, BigInteger p, BigInteger q, BigInteger dP, BigInteger dQ, BigInteger qInv) keys = keyGenerator.GenerateKeyPair();
-        e = keys.e;
-        d = keys.d;
-        n = keys.n;
+        AsymmetricKeyPair baseKeys = keyGenerator.GenerateKeyPair();
         
-        p = keys.p;
-        q = keys.q;
-        dP = keys.dP;
-        dQ = keys.dQ;
-        qInv = keys.qInv;
+        if (baseKeys is not RsaFullKeyPair keys)
+            throw new InvalidOperationException("Invalid key pair type generated.");
+        
+        e = keys.E;
+        d = keys.D;
+        n = keys.N;
+        p = keys.P;
+        q = keys.Q;
+        dP = keys.DP;
+        dQ = keys.DQ;
+        qInv = keys.QInv;
     }
 
     public byte[] Encrypt(byte[] data)

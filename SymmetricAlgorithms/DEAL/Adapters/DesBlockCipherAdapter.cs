@@ -2,7 +2,7 @@ using Cryptography.SymmetricAlgorithms.DES;
 
 namespace Cryptography.SymmetricAlgorithms.DEAL.Adapters
 {
-    public class DesBlockCipherAdapter : Cryptography.IBlockCipherAdapter
+    public class DesBlockCipherAdapter : IBlockCipherAdapter
     {
         public int BlockSize => 8;
         public int KeySize => 8;

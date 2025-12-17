@@ -1,21 +1,20 @@
-using Cryptography.AsymmetricAlgorithms.RSA;
+using Cryptography.Utility;
 
 namespace Cryptography.Context.Asymmetric;
 
 public class AsymmetricAlgorithmContext
 {
-    readonly Rsa rsa;
+    readonly IAsymmetricCipher cipher;
     readonly int keySizeBytes;
     readonly int maxDataBlockSize;
     const int PaddingOverhead = 11;
 
-    public AsymmetricAlgorithmContext(Rsa rsa)
+    public AsymmetricAlgorithmContext(IAsymmetricCipher cipher)
     {
-        if (!rsa.HasKey) throw new ArgumentException("Keys required");
-        this.rsa = rsa;
+        if (!cipher.HasKey) throw new ArgumentException("Keys required");
+        this.cipher = cipher;
         
-        int keyBits = (int)rsa.PublicPair.Modulus.GetBitLength();
-        keySizeBytes = (keyBits + 7) / 8;
+        keySizeBytes = (cipher.KeySizeBits + 7) / 8;
         maxDataBlockSize = keySizeBytes - PaddingOverhead;
     }
 
@@ -56,7 +55,7 @@ public class AsymmetricAlgorithmContext
             byte[] chunk = new byte[currentSize];
             Buffer.BlockCopy(data, offset, chunk, 0, currentSize);
 
-            byte[] encryptedChunk = rsa.Encrypt(chunk);
+            byte[] encryptedChunk = cipher.Encrypt(chunk);
 
             Buffer.BlockCopy(encryptedChunk, 0, result, i * outputBlockSize, outputBlockSize);
         });
@@ -84,7 +83,7 @@ public class AsymmetricAlgorithmContext
             byte[] chunk = new byte[blockSize];
             Buffer.BlockCopy(data, i * blockSize, chunk, 0, blockSize);
 
-            decryptedBlocks[i] = rsa.Decrypt(chunk);
+            decryptedBlocks[i] = cipher.Decrypt(chunk);
         });
 
         long totalLen = 0;
