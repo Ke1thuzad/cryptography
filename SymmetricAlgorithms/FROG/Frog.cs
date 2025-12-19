@@ -20,7 +20,7 @@ public class Frog : ISymmetricKeyAlgorithm
     public void SetKey(byte[] key)
     {
         ArgumentNullException.ThrowIfNull(key);
-        if (key.Length < 5 || key.Length > 125)
+        if (key.Length is < 5 or > 125)
             throw new ArgumentException("Key length must be between 5 and 125 bytes.");
 
         _rounds = GenerateKeySchedule(key);
@@ -37,7 +37,7 @@ public class Frog : ISymmetricKeyAlgorithm
 
         for (int r = 0; r < NumRounds; r++)
         {
-            var round = _rounds[r];
+            FrogRound round = _rounds[r];
 
             for (int i = 0; i < _blockSize; i++)
             {
@@ -69,7 +69,7 @@ public class Frog : ISymmetricKeyAlgorithm
 
         for (int r = NumRounds - 1; r >= 0; r--)
         {
-            var round = _rounds[r];
+            FrogRound round = _rounds[r];
 
             for (int i = _blockSize - 1; i >= 0; i--)
             {

@@ -31,7 +31,7 @@ class Program
         byte[] iv = new byte[16]; 
         
         Frog frog = new(16);
-        SymmetricAlgorithmContext context = new(frog, key, CipherMode.Mode.ECB, Padding.Mode.PKCS7, iv);
+        SymmetricAlgorithmContext context = new(frog, key, CipherMode.Mode.RandomDelta, Padding.Mode.PKCS7, iv);
 
         await context.Encrypt("qewrew.mp4", "encryptedqewrew.mp4");
         

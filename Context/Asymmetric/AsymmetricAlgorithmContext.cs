@@ -20,7 +20,7 @@ public class AsymmetricAlgorithmContext
 
     public async Task Encrypt(string inFile, string outFile)
     {
-        int batchSize = 1000;
+        const int batchSize = 1000;
         int bufferSize = maxDataBlockSize * batchSize;
         
         await ProcessFile(inFile, outFile, bufferSize, EncryptBytesParallel);
@@ -28,7 +28,7 @@ public class AsymmetricAlgorithmContext
 
     public async Task Decrypt(string inFile, string outFile)
     {
-        int batchSize = 1000;
+        const int batchSize = 1000;
         int bufferSize = keySizeBytes * batchSize;
         
         await ProcessFile(inFile, outFile, bufferSize, DecryptBytesParallel);

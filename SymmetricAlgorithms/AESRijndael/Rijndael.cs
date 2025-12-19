@@ -126,7 +126,7 @@ public class Rijndael : ISymmetricKeyAlgorithm
 
     void SubBytes(byte[,] state)
     {
-        var sBox = sBoxProvider.Forward;
+        byte[] sBox = sBoxProvider.Forward;
         for (int r = 0; r < 4; r++)
         {
             for (int c = 0; c < nb; c++)
@@ -138,7 +138,7 @@ public class Rijndael : ISymmetricKeyAlgorithm
 
     void InvSubBytes(byte[,] state)
     {
-        var invSBox = sBoxProvider.Inverse;
+        byte[] invSBox = sBoxProvider.Inverse;
         for (int r = 0; r < 4; r++)
         {
             for (int c = 0; c < nb; c++)
