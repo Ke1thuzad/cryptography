@@ -9,6 +9,7 @@ using Cryptography.AsymmetricAlgorithms.RSA;
 using Cryptography.AsymmetricAlgorithms.RSA.Attacks;
 using Cryptography.Context.Asymmetric;
 using Cryptography.SymmetricAlgorithms.AESRijndael;
+using Cryptography.SymmetricAlgorithms.FROG;
 using Cryptography.SymmetricAlgorithms.RC4;
 
 namespace Cryptography;
@@ -20,7 +21,21 @@ class Program
         // await DesTest();
         // await AesTest();
         // await DiffieHellmanTest();
-        await Rc4Test();
+        // await Rc4Test();
+        await FrogTest();
+    }
+    
+    static async Task FrogTest()
+    {
+        byte[] key = "qwerfvgbhq7y3r8hyh"u8.ToArray(); 
+        byte[] iv = new byte[16]; 
+        
+        Frog frog = new(16);
+        SymmetricAlgorithmContext context = new(frog, key, CipherMode.Mode.ECB, Padding.Mode.PKCS7, iv);
+
+        await context.Encrypt("qewrew.mp4", "encryptedqewrew.mp4");
+        
+        await context.Decrypt("encryptedqewrew.mp4", "decryptedqewrew.mp4");
     }
     
      static async Task DiffieHellmanTest()
@@ -135,9 +150,9 @@ class Program
 
         SymmetricAlgorithmContext context = new(aes, key, CipherMode.Mode.ECB, Padding.Mode.PKCS7, iv);
 
-        await context.Encrypt("proezd.mp4", "encryptedproezd.mp4");
+        await context.Encrypt("qewrew.mp4", "encryptedqewrew.mp4");
         
-        await context.Decrypt("encryptedproezd.mp4", "decryptedproezd.mp4");
+        await context.Decrypt("encryptedqewrew.mp4", "decryptedqewrew.mp4");
     }
 
     static async Task RsaTest() {

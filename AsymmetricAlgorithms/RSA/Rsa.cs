@@ -4,7 +4,7 @@ using Cryptography.Context.Asymmetric;
 
 namespace Cryptography.AsymmetricAlgorithms.RSA;
 
-public class Rsa : IAsymmetricCipher
+public class Rsa : IAsymmetricKeyAlgorithm
 {
     public enum PrimalityTestType
     {

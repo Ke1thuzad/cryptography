@@ -4,17 +4,17 @@ namespace Cryptography.Context.Asymmetric;
 
 public class AsymmetricAlgorithmContext
 {
-    readonly IAsymmetricCipher cipher;
+    readonly IAsymmetricKeyAlgorithm keyAlgorithm;
     readonly int keySizeBytes;
     readonly int maxDataBlockSize;
     const int PaddingOverhead = 11;
 
-    public AsymmetricAlgorithmContext(IAsymmetricCipher cipher)
+    public AsymmetricAlgorithmContext(IAsymmetricKeyAlgorithm keyAlgorithm)
     {
-        if (!cipher.HasKey) throw new ArgumentException("Keys required");
-        this.cipher = cipher;
+        if (!keyAlgorithm.HasKey) throw new ArgumentException("Keys required");
+        this.keyAlgorithm = keyAlgorithm;
         
-        keySizeBytes = (cipher.KeySizeBits + 7) / 8;
+        keySizeBytes = (keyAlgorithm.KeySizeBits + 7) / 8;
         maxDataBlockSize = keySizeBytes - PaddingOverhead;
     }
 
@@ -55,7 +55,7 @@ public class AsymmetricAlgorithmContext
             byte[] chunk = new byte[currentSize];
             Buffer.BlockCopy(data, offset, chunk, 0, currentSize);
 
-            byte[] encryptedChunk = cipher.Encrypt(chunk);
+            byte[] encryptedChunk = keyAlgorithm.Encrypt(chunk);
 
             Buffer.BlockCopy(encryptedChunk, 0, result, i * outputBlockSize, outputBlockSize);
         });
@@ -83,7 +83,7 @@ public class AsymmetricAlgorithmContext
             byte[] chunk = new byte[blockSize];
             Buffer.BlockCopy(data, i * blockSize, chunk, 0, blockSize);
 
-            decryptedBlocks[i] = cipher.Decrypt(chunk);
+            decryptedBlocks[i] = keyAlgorithm.Decrypt(chunk);
         });
 
         long totalLen = 0;

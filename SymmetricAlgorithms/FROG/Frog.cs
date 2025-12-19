@@ -9,8 +9,9 @@ public class Frog : ISymmetricKeyAlgorithm
 
     public Frog(int blockSize = 16)
     {
-        if (blockSize < 8 || blockSize > 128)
+        if (blockSize is < 8 or > 128)
             throw new ArgumentException("Block size must be between 8 and 128 bytes.");
+        
         _blockSize = blockSize;
     }
 
@@ -92,10 +93,13 @@ public class Frog : ISymmetricKeyAlgorithm
 
     FrogRound[] GenerateKeySchedule(byte[] userKey)
     {
-        byte[] simpleKey = new byte[2304];
+        int roundSize = _blockSize * 2 + 256;
+        int internalKeySize = NumRounds * roundSize;
+        
+        byte[] simpleKey = new byte[internalKeySize];
         int keyLen = userKey.Length;
 
-        for (int i = 0; i < 2304; i++)
+        for (int i = 0; i < internalKeySize; i++)
         {
             simpleKey[i] = userKey[i % keyLen];
         }
@@ -106,14 +110,14 @@ public class Frog : ISymmetricKeyAlgorithm
         
         for (int i = 0; i < 8; i++)
         {
-            for (int j = 0; j < 2304; j++)
+            for (int j = 0; j < internalKeySize; j++)
             {
                 processed = (processed + simpleKey[j] + lastVal) & 0xFF;
                 simpleKey[j] = (byte)processed;
                 
-                if (j < 2303)
+                if (j < internalKeySize - 1)
                 {
-                    k = (k + simpleKey[j]) % 2304;
+                    k = (k + simpleKey[j]) % internalKeySize;
                     (simpleKey[j], simpleKey[k]) = (simpleKey[k], simpleKey[j]);
                 }
                 lastVal = simpleKey[j];
@@ -175,20 +179,12 @@ public class Frog : ISymmetricKeyAlgorithm
         }
     }
 
-    class FrogRound
+    class FrogRound(int blockSize)
     {
-        public byte[] XorBu;
-        public byte[] Subst;
-        public byte[] BombPerm;
-        public byte[] InvSubst; 
-
-        public FrogRound(int blockSize)
-        {
-            XorBu = new byte[blockSize];
-            Subst = new byte[256];
-            BombPerm = new byte[blockSize];
-            InvSubst = new byte[256];
-        }
+        public byte[] XorBu = new byte[blockSize];
+        public byte[] Subst = new byte[256];
+        public byte[] BombPerm = new byte[blockSize];
+        public byte[] InvSubst = new byte[256];
 
         public void ComputeInverse()
         {

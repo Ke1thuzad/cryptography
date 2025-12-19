@@ -1,6 +1,6 @@
 namespace Cryptography;
 
-public interface IAsymmetricCipher
+public interface IAsymmetricKeyAlgorithm
 {
     bool HasKey { get; }
     int KeySizeBits { get; } 
